@@ -1,0 +1,5 @@
+classes=10
+train=data/cowc_carpk_train.txt
+valid=data/cowc_carpk_test.txt
+names=data/cowc_carpk.names
+backup = backup/
