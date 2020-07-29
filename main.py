@@ -8,6 +8,12 @@ from darknet import darknet
 import time
 from sort import *
 
+from collections import namedtuple
+import datetime
+
+bounding_boxes_and_ids = []
+bbs_ids = namedtuple('Bbox_id', 'time id_frame bb_id')
+
 netMain = None
 metaMain = None
 altNames = None
@@ -97,7 +103,6 @@ def inference_loop(cap: cv2.VideoCapture, out: tuple, tracker_mod: str, trackers
     :param show_out: показывать результирующее видео в процессе распознавания
     :return: None
     '''
-    print(type(cap), type(out))
     save_out_vid, out = out
     # Create an image we reuse for each detect
     darknet_image = darknet.make_image(darknet.network_width(netMain),
@@ -107,6 +112,10 @@ def inference_loop(cap: cv2.VideoCapture, out: tuple, tracker_mod: str, trackers
     frame_interval = 1
     while True:
         prev_time = time.time()
+        '''=====================================================================
+            фективная функция посылающая сигнал синхронизации перед созданием фрейма'''
+        sync_signal(port=None)
+        '''====================================================================='''
         ret, frame_read = cap.read()
         if frame_read is None:
             break
@@ -128,6 +137,13 @@ def inference_loop(cap: cv2.VideoCapture, out: tuple, tracker_mod: str, trackers
                        }
         track_bbs_ids = tracker(
             **track_kwarg)  # [[xmin, ymin, xmax, ymax, track_id],[xmin, ymin, xmax, ymax, track_id],...]
+        add_bbs_ids(track_bbs_ids, idx_frame)
+        '''================================================
+            Определение глобальных координат объекта и их отправка 
+            автопилоту'''
+        global_bbs_coord = real_global_coord(track_bbs_ids)
+        send_for_autopilot(global_bbs_coord, port=None)
+        '''================================================'''
         image = cvDrawBoxes(frame_resized, track_bbs_ids)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         if save_out_vid:
@@ -207,6 +223,33 @@ def convertBack(x, y, w, h):
     return xmin, ymin, xmax, ymax
 
 
+def sync_signal(port=None):
+    '''TODO: заменить заглушку на рабочий код'''
+    pass
+
+
+def add_bbs_ids(track_bbs_ids, idx_frame):
+    bounding_boxes_and_ids.append(bbs_ids(str(datetime.datetime.now().time()), idx_frame, track_bbs_ids))
+
+
+def get_real_global_center(port=None):
+    '''TODO: заменить заглушку на рабочий код'''
+    pass
+    return 'center coord and additional info'
+
+
+def real_global_coord(track_bbs_ids):
+    '''TODO: заменить заглушку на рабочий код'''
+    center_coord = get_real_global_center(port=None)
+    '''математика для определения глобальных координат Bboxes'''
+    return "global Bboxes coord's"
+
+
+def send_for_autopilot(global_bbs_coord, port=None):
+    '''TODO: заменить заглушку на рабочий код'''
+    pass
+
+
 if __name__ == "__main__":
 
     configPath = "./darknet/cfg/yolov4.cfg"  # in darknet dir
@@ -219,6 +262,7 @@ if __name__ == "__main__":
         trackers_kwarg = {}
     elif tracker_mod == 'deepsort':
         from deep_sort_pytorch.utils.parser import get_config
+
         config_deepsort = './additionally/deep_sort.yaml'
         print(os.getcwd())
         cfg = get_config()
@@ -232,3 +276,4 @@ if __name__ == "__main__":
     model_init(configPath=configPath, weightPath=weightPath, metaPath=metaPath)
     cap, out = video_read(pipe=pipe, savePath_out_vid="./additionally/output.avi")
     inference_loop(cap=cap, out=out, tracker_mod=tracker_mod, trackers_kwarg=trackers_kwarg, show_out=True)
+    print(bounding_boxes_and_ids)
