@@ -6,6 +6,9 @@ from typing import Union
 from deep_sort_pytorch.yolov3_deepsort import VideoTracker
 from darknet import darknet
 import time
+from glob import glob
+import os.path
+from pathlib import Path
 from sort import *
 
 from collections import namedtuple
@@ -19,7 +22,7 @@ metaMain = None
 altNames = None
 
 
-def model_init(configPath: str, weightPath: str, metaPath: str) -> None:
+def model_init(configPath: str, weightPath: str, metaPath: str) -> Tuple[Any, Any]:
     '''
     Model initialization and store on CUDA-memory until the script completes
     :param configPath: путь к конфиг-файлу YOLO
@@ -62,7 +65,7 @@ def model_init(configPath: str, weightPath: str, metaPath: str) -> None:
                     pass
         except Exception:
             pass
-
+    return netMain, metaMain
 
 def video_read(pipe: Union[str, int], camera_set: dict = None, savePath_out_vid: str = './out.avi') -> tuple:
     '''
@@ -201,6 +204,93 @@ def _tracker_deepsort(mot_tracker, idx_frame, frame_interval, im, bbox_xywh, cls
     track_bbs_ids = mot_tracker.run(idx_frame, frame_interval, im, bbox_xywh, cls_conf)
     return track_bbs_ids
 
+def check_img_store():
+    default_path = './additionally/test_img_1024'
+
+    def sort_func(name):
+        name_number_part = Path(name).stem.replace('CF', '').replace('_CROP_', '')
+        if len(name_number_part) == 7:
+            name_number_part = Path(name).stem.replace('CF', '').replace('_CROP_', '0')
+        return int(name_number_part)
+
+    sample_list = sorted(glob(default_path + '*.png'), key=sort_func)
+    return sample_list
+
+def performBatchDetect(net, mata, sample, thresh= 0.25, hier_thresh=.5, nms=.45, batch_size=8):
+    # import cv2
+    # import numpy as np
+    # NB! Image sizes should be the same
+    # You can change the images, yet, be sure that they have the same width and height
+
+    # net = load_net_custom(configPath.encode('utf-8'), weightPath.encode('utf-8'), 0, batch_size)
+    # meta = load_meta(metaPath.encode('utf-8'))
+
+    # t1 = time.time()
+    sample_list = check_img_store()
+    s1, s2 = sample
+    for s in [s1,s2]:
+        img_samples = s
+        image_list = [cv2.imread(k) for k in img_samples]
+        pred_height, pred_width, c = image_list[0].shape
+        net_width, net_height = (network_width(net), network_height(net))
+
+        img_list = []
+        for custom_image_bgr in image_list:
+            custom_image = cv2.cvtColor(custom_image_bgr, cv2.COLOR_BGR2RGB)
+            custom_image = cv2.resize(
+                custom_image, (net_width, net_height), interpolation=cv2.INTER_NEAREST)
+            custom_image = custom_image.transpose(2, 0, 1)
+            img_list.append(custom_image)
+
+        arr = np.concatenate(img_list, axis=0)
+        arr = np.ascontiguousarray(arr.flat, dtype=np.float32) / 255.0
+        data = arr.ctypes.data_as(POINTER(c_float))
+        im = IMAGE(net_width, net_height, c, data)
+        t1 = time.time()
+
+        batch_dets = network_predict_batch(net, im, batch_size, pred_width,
+                                                    pred_height, thresh, hier_thresh, None, 0, 0)
+        t2 = time.time()
+        batch_boxes = []
+        batch_scores = []
+        batch_classes = []
+        for b in range(batch_size):
+            num = batch_dets[b].num
+            dets = batch_dets[b].dets
+            if nms:
+                do_nms_obj(dets, num, meta.classes, nms)
+            boxes = []
+            scores = []
+            classes = []
+            for i in range(num):
+                det = dets[i]
+                score = -1
+                label = None
+                for c in range(det.classes):
+                    p = det.prob[c]
+                    if p > score:
+                        score = p
+                        label = c
+                if score > thresh:
+                    box = det.bbox
+                    left, top, right, bottom = map(int,(box.x - box.w / 2, box.y - box.h / 2,
+                                                box.x + box.w / 2, box.y + box.h / 2))
+                    boxes.append((top, left, bottom, right))
+                    scores.append(score)
+                    classes.append(label)
+                    boxColor = (int(255 * (1 - (score ** 2))), int(255 * (score ** 2)), 0)
+                    cv2.rectangle(image_list[b], (left, top),
+                              (right, bottom), boxColor, 2)
+            cv2.imwrite(os.path.basename(img_samples[b]),image_list[b])
+
+            batch_boxes.append(boxes)
+            batch_scores.append(scores)
+            batch_classes.append(classes)
+        free_batch_detections(batch_dets, batch_size)
+        # t2 = time.time()
+        print('time: ', t2-t1)
+    return batch_boxes, batch_scores, batch_classes
+
 
 def cvDrawBoxes(img, track_bbs_ids):
     for detection in track_bbs_ids:
@@ -253,11 +343,15 @@ def send_for_autopilot(global_bbs_coord, port=None):
 if __name__ == "__main__":
 
     configPath = "./darknet/cfg/yolov4.cfg"  # in darknet dir
+    # configPath = "./additionally/yolov4-cowc_carpk.cfg"
     weightPath = "./additionally/yolov4.weights"  # in darknet dir
+    # weightPath = "./additionally/yolov4-cowc_carpk_best.weights"
     metaPath = "./additionally/coco.data"  # in darknet dir
-    pipe = './additionally/test3.mpg'
-    tracker_mod = 'deepsort'
+    # metaPath = "./additionally/cowc_carpk.data"
 
+    pipe = './additionally/test3.mpg'
+    # tracker_mod = 'deepsort'
+    tracker_mod = 'sort'
     if tracker_mod == 'sort':
         trackers_kwarg = {}
     elif tracker_mod == 'deepsort':
@@ -273,7 +367,10 @@ if __name__ == "__main__":
             'video_path': pipe,
         }
 
-    model_init(configPath=configPath, weightPath=weightPath, metaPath=metaPath)
-    cap, out = video_read(pipe=pipe, savePath_out_vid="./additionally/output.avi")
-    inference_loop(cap=cap, out=out, tracker_mod=tracker_mod, trackers_kwarg=trackers_kwarg, show_out=True)
-    print(bounding_boxes_and_ids)
+    # model_init(configPath=configPath, weightPath=weightPath, metaPath=metaPath)
+    # cap, out = video_read(pipe=pipe, savePath_out_vid="./additionally/output.avi")
+    # inference_loop(cap=cap, out=out, tracker_mod=tracker_mod, trackers_kwarg=trackers_kwarg, show_out=True)
+    # print(bounding_boxes_and_ids)
+
+    net, meta = model_init(configPath=configPath, weightPath=weightPath, metaPath=metaPath)
+

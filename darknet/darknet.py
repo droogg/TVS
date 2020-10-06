@@ -542,22 +542,22 @@ if __name__ == "__main__":
     #Uncomment the following line to see batch inference working
     p1 = '/home/vic/PycharmProjects/DS_neuro/Task/detection/MY/exp_del/cr/1/crops_img/'
 
-    sample1 = [p1 + 'top_potsdam_2_10_RGB_CROP_1_CROP_1.png',
-                   p1 + 'top_potsdam_2_10_RGB_CROP_1_CROP_2.png',
-                   p1 + 'top_potsdam_2_10_RGB_CROP_1_CROP_3.png',
-                   p1 + 'top_potsdam_2_10_RGB_CROP_1_CROP_4.png',
-                   p1 + 'top_potsdam_2_10_RGB_CROP_1_CROP_5.png',
-                   p1 + 'top_potsdam_2_10_RGB_CROP_1_CROP_6.png',
-                   p1 + 'top_potsdam_2_10_RGB_CROP_1_CROP_7.png',
-                   p1 + 'top_potsdam_2_10_RGB_CROP_1_CROP_8.png']
-    sample2 = [p1 + 'top_potsdam_2_10_RGB_CROP_1_CROP_9.png',
-               p1 + 'top_potsdam_2_10_RGB_CROP_1_CROP_10.png',
-               p1 + 'top_potsdam_2_10_RGB_CROP_1_CROP_11.png',
-               p1 + 'top_potsdam_2_10_RGB_CROP_1_CROP_12.png',
-               p1 + 'top_potsdam_2_10_RGB_CROP_1_CROP_13.png',
-               p1 + 'top_potsdam_2_10_RGB_CROP_1_CROP_14.png',
-               p1 + 'top_potsdam_2_10_RGB_CROP_1_CROP_15.png',
-               p1 + 'top_potsdam_2_10_RGB_CROP_1_CROP_16.png', ]
+    sample1 = '''/home/vic/PycharmProjects/DS_neuro/Task/detection/MY/detect_project/datset_base_work_copy/test/CF019990_CROP_1.png
+    /home/vic/PycharmProjects/DS_neuro/Task/detection/MY/detect_project/datset_base_work_copy/test/CF019990_CROP_10.png
+    /home/vic/PycharmProjects/DS_neuro/Task/detection/MY/detect_project/datset_base_work_copy/test/CF019990_CROP_11.png
+    /home/vic/PycharmProjects/DS_neuro/Task/detection/MY/detect_project/datset_base_work_copy/test/CF019990_CROP_12.png
+    /home/vic/PycharmProjects/DS_neuro/Task/detection/MY/detect_project/datset_base_work_copy/test/CF019990_CROP_13.png
+    /home/vic/PycharmProjects/DS_neuro/Task/detection/MY/detect_project/datset_base_work_copy/test/CF019990_CROP_14.png
+    /home/vic/PycharmProjects/DS_neuro/Task/detection/MY/detect_project/datset_base_work_copy/test/CF019990_CROP_15.png
+    /home/vic/PycharmProjects/DS_neuro/Task/detection/MY/detect_project/datset_base_work_copy/test/CF019990_CROP_16.png'''.split()
+    sample2 = '''/home/vic/PycharmProjects/DS_neuro/Task/detection/MY/detect_project/datset_base_work_copy/test/CF019990_CROP_17.png
+    /home/vic/PycharmProjects/DS_neuro/Task/detection/MY/detect_project/datset_base_work_copy/test/CF019990_CROP_18.png
+    /home/vic/PycharmProjects/DS_neuro/Task/detection/MY/detect_project/datset_base_work_copy/test/CF019990_CROP_19.png
+    /home/vic/PycharmProjects/DS_neuro/Task/detection/MY/detect_project/datset_base_work_copy/test/CF019990_CROP_2.png
+    /home/vic/PycharmProjects/DS_neuro/Task/detection/MY/detect_project/datset_base_work_copy/test/CF019990_CROP_20.png
+    /home/vic/PycharmProjects/DS_neuro/Task/detection/MY/detect_project/datset_base_work_copy/test/CF019990_CROP_21.png
+    /home/vic/PycharmProjects/DS_neuro/Task/detection/MY/detect_project/datset_base_work_copy/test/CF019990_CROP_22.png
+    /home/vic/PycharmProjects/DS_neuro/Task/detection/MY/detect_project/datset_base_work_copy/test/CF019990_CROP_23.png'''.split()
     s = [sample1, sample2]
     print(performBatchDetect(s))
     # t2=time.time()
